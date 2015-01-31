@@ -146,42 +146,66 @@ function canGet($time, $byWhat)
         'by' => $byWhat
     );
 }
-$pathDone = array();
-$time     = 0;
-function makeOneStep($paths, $startPoint, $endPoint, &$time, $pathDone)
+$pathDone     = array();
+$time         = 0;
+$lowerTime    = 0;
+$crossingTime = array();
+function makeOneStep($paths, $startPoint, $endPoint, $time, $lowerTime, $crossingTime, $pathDone)
 {
     
     $pathDone[] = $startPoint;
     $result     = array();
     if (isset($paths[$startPoint][$endPoint])) {
-        $pathDone[] = $endPoint;
+        $pathDone[]     = $endPoint;
+        $c              = $paths[$startPoint][$endPoint]['time'];
+        $crossingTime[] = $c;
         $time += $paths[$startPoint][$endPoint]['time'];
-        echo $paths[$startPoint][$endPoint]['time'];
-        $result[]       = $pathDone;
+        $result['path'] = $pathDone;
         $result['time'] = $time;
-        $time           = 0;
+        $result['ct']   = $crossingTime;
         return $result;
         
     }
     $shortest = array();
     
-    foreach ($paths[$startPoint] as $k => $station) {
-        if (!in_array($k, $pathDone)) {
-            $time += $paths[$startPoint][$k]['time'];
-            $newPath = makeOneStep($paths, $k, $endPoint, $time, $pathDone);
+    foreach ($paths[$startPoint] as $stationName => $stationInfo) {
+        if (!in_array($stationName, $pathDone)) {
+            $time += $paths[$startPoint][$stationName]['time'];
+            $crossingTime[] = $paths[$startPoint][$stationName]['time'];
+            $newPath        = makeOneStep($paths, $stationName, $endPoint, $time, $lowerTime, $crossingTime, $pathDone);
             
-            if ($newPath) {
+            if ($lowerTime == 0 XOR ($time < $lowerTime)) {
                 
-                if (!$lowerTime || ($time < $lowerTime))
-                    $lowerTime = $time;
-                $shortest = $newPath;
+                $lowerTime = $time;
+                $shortest  = $newPath;
             }
+            
         }
     }
-    $result         = $shortest;
-    $result['time'] = $lowerTime;
+    $result = $shortest;
+    
     return $result;
     
     
 }
-print_r(makeOneStep($paths, $startPoint, $endPoint, $time, $pathDone));
+$path = makeOneStep($paths, $startPoint, $endPoint, $time, $lowerTime, $crossingTime, $pathDone);
+
+$text = "Маршрут построен: \n";
+$i    = 0;
+
+foreach ($path['path'] as $station) {
+    if ($i == 0) {
+        $text .= "Точка отправления:  $pointNames[$station] \n";
+        $i++;
+        CONTINUE;
+    }
+    if ($i == count($path['path']) - 1) {
+        $text .= "Конечная точка: $pointNames[$station]. \n Затраченное время: {$path['time']}";
+        
+    } else {
+        
+        $text .= "$i $pointNames[$station] . Необходимое время : {$path['ct'][$i-1]}\n";
+        $i++;
+    }
+}
+echo $text;
